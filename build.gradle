@@ -1,0 +1,58 @@
+plugins {
+    id 'application'
+    id 'org.jetbrains.kotlin.jvm' version '1.4.21'
+    id 'com.google.cloud.tools.jib' version '3.1.2'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+    implementation platform("org.http4k:http4k-bom:4.1.1.1")
+    implementation "org.http4k:http4k-core"
+    implementation "org.http4k:http4k-server-netty"
+    implementation "org.http4k:http4k-client-apache"
+    implementation "org.http4k:http4k-contract"
+    implementation "org.http4k:http4k-format-jackson"
+
+    testImplementation platform("org.junit:junit-bom:5.7.0")
+    testImplementation "org.http4k:http4k-testing-hamkrest"
+    testImplementation "org.junit.jupiter:junit-jupiter-api"
+    testImplementation "org.junit.jupiter:junit-jupiter-engine"
+}
+
+application {
+    mainClass = 'org.example.AppKt'
+}
+
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = 11
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+jib {
+    from {
+        image = 'openjdk:15-alpine'
+    }
+    to {
+        image = 'xxxxxxxxxxxx.dkr.ecr.eu-west-2.amazonaws.com/hello-world'
+        credHelper = 'ecr-login'
+        tags = ['latest']
+    }
+    container {
+        mainClass = 'org.example.AppKt'
+        jvmFlags = ['-Xms512m', '-Xdebug']
+        ports = ['9000']
+        format = 'Docker'
+    }
+}
