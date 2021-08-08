@@ -21,12 +21,17 @@ sense to live in the other module (e.g. `deploy/security.yml` could be in `infra
 AWS will charge you for running this! I think the only resource outside the free tier is the ALB.
 
 1. Have the aws cli configured and terraform installed. 
-1. Run `gradle provisionInfra`. This will run `terraform apply` on the infra folder. You might want to update the 
-   region on `build.gradle`. Terraform will output the LB URL, which is required later to poke the app.
-1. run `gradle deployContainer`. This will trigger the `jib` plugin and build the code, build the container and upload it to ECR.
+1. Run `gradle provisionInfra`. This will: 
+   1. Run `terraform init` on the infra and deploy directories.
+   1. Run `terraform apply` on the infra folder. You might want to update the 
+   region on `build.gradle`. **Terraform will output the LB URL, which is required later to poke the app.**
+1. run `gradle deployContainer`. This will:
+   1. Trigger the `jib` plugin and build the code, build the container and upload it to ECR.
+   2. Run `terraform apply` on the deploy directory.
 1. Poke the app using the LB url (might need a minute for the ECS task to come online). The LB forwards port 80
 to one target group and port 8080 to the second target group. Both containers run the same image.
-1. Destroy all AWS resources with `gradle destroyInfra`.
+1. Destroy all AWS resources with `gradle destroyInfra`, which will run `terraform destroy` on both the deploy
+and infra directories.
 
 # Issues!!
 Because we love problems!
