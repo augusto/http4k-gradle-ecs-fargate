@@ -72,7 +72,7 @@ task initTerraform {
     }
 }
 
-task provisionInfra {
+task provisionInfra(dependsOn: 'initTerraform') {
     mustRunAfter 'initTerraform'
     doLast {
         exec {
