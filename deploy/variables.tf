@@ -2,7 +2,6 @@
 
 variable "aws_region" {
   description = "The AWS region things are created in"
-  default     = "eu-west-2"
 }
 
 variable "az_count" {
@@ -25,7 +24,6 @@ variable "health_check_path" {
 
 variable "app_image" {
   description = "Docker image to run in the ECS cluster"
-  default     = "xxxxxxxxxxxx.dkr.ecr.eu-west-2.amazonaws.com/hello-world:latest"
 }
 
 variable "app_count" {

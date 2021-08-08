@@ -40,14 +40,16 @@ test {
     useJUnitPlatform()
 }
 
+String awsRegion = "eu-west-2"
+
 jib {
     from {
         image = 'openjdk:15-alpine'
     }
     to {
-        image = 'xxxxxxxxxxxx.dkr.ecr.eu-west-2.amazonaws.com/hello-world'
+        image = dockerImageUrl(awsRegion)
         credHelper = 'ecr-login'
-        tags = ['latest']
+        tags = [gitHash()]
     }
     container {
         mainClass = 'org.example.AppKt'
@@ -55,4 +57,60 @@ jib {
         ports = ['9000']
         format = 'Docker'
     }
+}
+
+task initTerraform {
+    doLast {
+        exec {
+            workingDir 'infra'
+            commandLine '/bin/sh', '-c', 'terraform init'
+        }
+        exec {
+            workingDir 'deploy'
+            commandLine '/bin/sh', '-c', 'terraform init'
+        }
+    }
+}
+
+task provisionInfra {
+    mustRunAfter 'initTerraform'
+    doLast {
+        exec {
+            workingDir 'infra'
+            commandLine '/bin/sh', '-c', "terraform apply -auto-approve -var='aws_region=${awsRegion}'"
+        }
+    }
+}
+
+task deployContainer(dependsOn: 'jib') {
+    mustRunAfter 'jib'
+    doLast {
+        exec {
+            workingDir 'deploy'
+            commandLine '/bin/sh', '-c', "terraform apply -auto-approve -var='app_image=${dockerImageUrl(awsRegion)}' -var='aws_region=${awsRegion}'"
+        }
+    }
+}
+
+task destroyInfra {
+    doLast {
+        exec {
+            workingDir 'deploy'
+            commandLine '/bin/sh', '-c', "terraform destroy -auto-approve -var='aws_region=${awsRegion}'"
+        }
+        exec {
+            workingDir 'infra'
+            commandLine '/bin/sh', '-c', "terraform destroy -auto-approve -var='aws_region=${awsRegion}'"
+        }
+    }
+}
+
+static String gitHash() {
+    'git rev-parse --verify HEAD'.execute().text.trim()
+}
+
+static String dockerImageUrl(String awsRegion) {
+    def awsAccount = 'aws sts get-caller-identity --query Account --output text'.execute().text.trim()
+    def ecrUrl = "${awsAccount}.dkr.ecr.${awsRegion}.amazonaws.com/hello-world"
+    "${ecrUrl}:${gitHash()}"
 }

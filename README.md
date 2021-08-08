@@ -18,24 +18,27 @@ The separation of the 2 is not great, as several variables are required on both,
 sense to live in the other module (e.g. `deploy/security.yml` could be in `infra`)
 
 # How do I run this?
-1. First run terraform on the infra folder (`terraform apply`). You might want to update the region in the variables.
-Copy the output ECR url and put in build.gradle. Also note the output LB URL.
-2. Upload the container to ECR (`gradle jib`)
-3. Update variables in the deploy folder (image URL). Deploy by running terraform in the deploy folder (`terraform apply`).
-4. Poke the app using the LB url (might need a minute for the ECS task to come online). The LB forwards port 80
-to one container and port 8080 to the second container. Both containers run the same image.
+1. Have the aws cli configured and terraform installed. 
+1. Run `gradle provisionInfra`. This will run `terraform apply` on the infra folder. You might want to update the 
+   region on `build.gradle`. Copy the output ECR url and put in build.gradle. Terraform will output the
+   LB URL, which is required later to poke the app.
+1. run `gradle deployContainer`. This will trigger the `jib` plugin and build the code, build the container and upload it to ECR.
+1. Poke the app using the LB url (might need a minute for the ECS task to come online). The LB forwards port 80
+to one target group and port 8080 to the second target group. Both containers run the same image.
 
 # Issues!!
 Because we love problems!
 
-- At the moment, the image in ECR cannot be changed, as it's an immutable repo (good thing!), we would need to 
-run gradle in such a way that it creates images with different tags (maybe a timestamp?) and then TF would need 
-to pick this automatically or that would need to be passed as a variable.
 - Some values and variables have to be kept in sync manually, but this could be easily solved by setting them
 via [environment variables](https://www.terraform.io/docs/cli/config/environment-variables.html#tf_var_name  ) (or another solution?) 
-- Supposedly terraform manages rolling deploys to ECS using the lifecycle `create_before_destroy=true` on the 
-task definitions, but haven't tried this.
 - The containers should be changed to [distroless containers](https://github.com/GoogleContainerTools/distroless/) for security.  
-- Terraform _feels like_ it's not the right tool to deploy containers, but it does the job.
 - Some logging platforms require an extra container to forward logs from cloudwatch to the SaaS solution.
 - Security roles are a bit too lax.
+
+Notes:
+- At the moment, the image in ECR cannot be changed, as it's an immutable repo (good thing!). To solve this, we
+  use the git commit hash as the image tag. So to release a new version, a commit must be made. This works well
+  for CI/CD envs, but not to deploy _test_ versions.
+- Looks like Terraform manages rolling deploys to ECS, but needs more testing.
+- Using Terraform to do deploys containers doesn't feel right, but it does the job.
+- Might be good to add an autoscaling group as an example, even though ECS will recover if the container aborts.
