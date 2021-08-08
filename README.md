@@ -22,8 +22,7 @@ AWS will charge you for running this! I think the only resource outside the free
 
 1. Have the aws cli configured and terraform installed. 
 1. Run `gradle provisionInfra`. This will run `terraform apply` on the infra folder. You might want to update the 
-   region on `build.gradle`. Copy the output ECR url and put in build.gradle. Terraform will output the
-   LB URL, which is required later to poke the app.
+   region on `build.gradle`. Terraform will output the LB URL, which is required later to poke the app.
 1. run `gradle deployContainer`. This will trigger the `jib` plugin and build the code, build the container and upload it to ECR.
 1. Poke the app using the LB url (might need a minute for the ECS task to come online). The LB forwards port 80
 to one target group and port 8080 to the second target group. Both containers run the same image.
